@@ -13,13 +13,29 @@ def _read_mysql_setting(key, fallback=None):
         if not isinstance(secrets, dict):
             secrets = {}
 
-        for secret_key in (key, key.lower(), key.upper()):
+        alias_names = {
+            key,
+            key.lower(),
+            key.upper(),
+        }
+        if key.startswith("MYSQL_"):
+            short_name = key.replace("MYSQL_", "", 1)
+            alias_names.update({
+                short_name,
+                short_name.lower(),
+                short_name.upper(),
+            })
+
+        for secret_key in alias_names:
             if secret_key in secrets:
                 return secrets[secret_key]
 
         mysql_section = secrets.get("mysql", {})
         if isinstance(mysql_section, dict):
-            for secret_key in (key, key.lower(), key.upper()):
+            for secret_key in alias_names:
+                if secret_key in mysql_section:
+                    return mysql_section[secret_key]
+            for secret_key in ("host", "port", "user", "password", "database"):
                 if secret_key in mysql_section:
                     return mysql_section[secret_key]
     except Exception:
